@@ -45,18 +45,22 @@ import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.search.similarities.*;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
+import org.apache.lucene.search.similarities.TFIDFSimilarity;
 
 
 public class LuceneSearchApp {
 	String analyzer = "bm25";
 	boolean stopwords = true;
 	boolean stemmer = true;
+	Integer TaskNumber = null;
 	IndexWriterConfig iwc = null;
+	Analyzer standardAnalyzer = new StandardAnalyzer();
 	
 	public LuceneSearchApp() {
 	}
 	
-	public void setRankingMethod(String type){
+	public void setRankingMethod(String type, Integer tasknumber){
+		TaskNumber = tasknumber;
 		if(type.equals("1")){
 			analyzer = "vsm";
 			stopwords = true;
@@ -68,34 +72,29 @@ public class LuceneSearchApp {
 			stemmer = true;
 		}
 		if(type.equals("3")){
-			analyzer = "vsm";
-			stopwords = true;
-			stemmer = false;
-		}
-		if(type.equals("4")){
 			analyzer = "bm25";
 			stopwords = true;
 			stemmer = true;
 		}
-		if(type.equals("5")){
+		if(type.equals("4")){
 			analyzer = "bm25";
 			stopwords = false;
 			stemmer = true;
 		}
-		if(type.equals("6")){
-			analyzer = "bm25";
+		if(type.equals("5")){
+			analyzer = "LMDirichlet";
 			stopwords = true;
-			stemmer = false;
+			stemmer = true;
+		}
+		if(type.equals("6")){
+			analyzer = "LMDirichlet";
+			stopwords = false;
+			stemmer = true;
 		}
 	}
 	
 	public void index(List<DocumentInCollection> docs) throws IOException {		
 		// implement the Lucene indexing here
-		Directory fsDirectory = FSDirectory.open(Paths.get("index/"));
-		Analyzer standardAnalyzer = new StandardAnalyzer();
-		iwc = new IndexWriterConfig(standardAnalyzer);
-		iwc.setOpenMode(OpenMode.CREATE);
-		IndexWriter writer = new IndexWriter(fsDirectory, iwc);
 		
 		if (analyzer.equals("vsm") && stopwords && stemmer) 
         {
@@ -104,15 +103,13 @@ public class LuceneSearchApp {
             standardAnalyzer = new EnglishAnalyzer(stopWords);
             iwc = new IndexWriterConfig(standardAnalyzer);
             iwc.setSimilarity(new ClassicSimilarity());
-            System.out.println("Setting : VSM + stopwords + stemmer");
         } 
         else if (analyzer.equals("vsm") && !stopwords && stemmer) 
         {
             //VSM cosine similarity with TFIDF - stopwords + stemmer
         	standardAnalyzer = new EnglishAnalyzer(CharArraySet.EMPTY_SET);
-        	iwc = new IndexWriterConfig(standardAnalyzer);
+        	iwc = new IndexWriterConfig(new EnglishAnalyzer(CharArraySet.EMPTY_SET));
         	iwc.setSimilarity(new ClassicSimilarity());
-            System.out.println("Setting : VSM - stopwords + stemmer");
         } 
         else if (analyzer.equals("vsm") && stopwords && !stemmer) 
         {
@@ -121,7 +118,6 @@ public class LuceneSearchApp {
             standardAnalyzer = new StandardAnalyzer(stopWords);
             iwc = new IndexWriterConfig(standardAnalyzer);
             iwc.setSimilarity(new ClassicSimilarity());
-            System.out.println("Setting : VSM + stopwords - stemmer");
         } 
         else if (analyzer.equals("bm25") && stopwords && stemmer) 
         {
@@ -131,7 +127,6 @@ public class LuceneSearchApp {
             iwc = new IndexWriterConfig(standardAnalyzer);
             //BM25 ranking method
             iwc.setSimilarity(new BM25Similarity());
-            System.out.println("Setting : BM25 + stopwords + stemmer");
         } 
         else if (analyzer.equals("bm25") && !stopwords && stemmer) 
         {
@@ -140,7 +135,6 @@ public class LuceneSearchApp {
         	iwc = new IndexWriterConfig(standardAnalyzer);
             //BM25 ranking method
         	iwc.setSimilarity(new BM25Similarity());
-            System.out.println("Setting : BM25 - stopwords + stemmer");
         } 
         else if (analyzer.equals("bm25") && stopwords && !stemmer) 
         {
@@ -150,7 +144,32 @@ public class LuceneSearchApp {
             iwc = new IndexWriterConfig(standardAnalyzer);
             //BM25 ranking method
             iwc.setSimilarity(new BM25Similarity());
-            System.out.println("Setting : BM25 + stopwords - stemmer");
+        }
+        else if (analyzer.equals("LMDirichlet") && stopwords && stemmer) 
+        {
+            //Analyzer + stopwords + stemmer
+            CharArraySet stopWords = EnglishAnalyzer.getDefaultStopSet();
+            standardAnalyzer = new EnglishAnalyzer(stopWords);
+            iwc = new IndexWriterConfig(standardAnalyzer);
+            //BM25 ranking method
+            iwc.setSimilarity(new LMDirichletSimilarity());
+        } 
+        else if (analyzer.equals("LMDirichlet") && !stopwords && stemmer) 
+        {
+            //Analyzer - stopwords + stemmer
+        	standardAnalyzer = new EnglishAnalyzer(CharArraySet.EMPTY_SET);
+        	iwc = new IndexWriterConfig(standardAnalyzer);
+            //BM25 ranking method
+        	iwc.setSimilarity(new LMDirichletSimilarity());
+        } 
+        else if (analyzer.equals("LMDirichlet") && stopwords && !stemmer) 
+        {
+            //Analyzer + stopwords - stemmer
+            CharArraySet stopWords = StandardAnalyzer.STOP_WORDS_SET;
+            standardAnalyzer = new StandardAnalyzer(stopWords);
+            iwc = new IndexWriterConfig(standardAnalyzer);
+            //BM25 ranking method
+            iwc.setSimilarity(new LMDirichletSimilarity());
         }
         else
         {
@@ -160,16 +179,24 @@ public class LuceneSearchApp {
             iwc.setSimilarity(new ClassicSimilarity());
         }
 		
+
+		Directory fsDirectory = FSDirectory.open(Paths.get("index/"));
+		iwc.setOpenMode(OpenMode.CREATE);
+		IndexWriter writer = new IndexWriter(fsDirectory, iwc);
+        System.out.println("Setting : "+analyzer+" "+(stopwords?"+":"-") +" stopwords "+(stemmer?"+":"-") +" stemmer");
+		
 		for(DocumentInCollection _rssfeeddoc : docs){
 			Document doc = new Document();
 			//System.out.println(_rssfeeddoc.getTitle()+" : "+_rssfeeddoc.getPubDate().getTime()+" - "+_rssfeeddoc.getDescription());
-			doc.add(new TextField("title", _rssfeeddoc.getTitle(), Field.Store.YES));
-			doc.add(new TextField("abstract_text", _rssfeeddoc.getAbstractText(), Field.Store.YES));
-			doc.add(new StoredField("search_task_number", _rssfeeddoc.getSearchTaskNumber()));
-			doc.add(new TextField("query", _rssfeeddoc.getQuery(), Field.Store.YES));
-			doc.add(new StoredField("relevant", ((_rssfeeddoc.isRelevant())? 1 : 0)));
-			//doc.add(new LongPoint("publication_date", _rssfeeddoc.getPubDate().getTime()));
-			writer.addDocument(doc);
+			if(_rssfeeddoc.getSearchTaskNumber() == TaskNumber){
+				doc.add(new TextField("title", _rssfeeddoc.getTitle(), Field.Store.YES));
+				doc.add(new TextField("abstract_text", _rssfeeddoc.getAbstractText(), Field.Store.YES));
+				doc.add(new StoredField("search_task_number", _rssfeeddoc.getSearchTaskNumber()));
+				doc.add(new TextField("query", _rssfeeddoc.getQuery(), Field.Store.YES));
+				doc.add(new StoredField("relevant", ((_rssfeeddoc.isRelevant())? 1 : 0)));
+				//doc.add(new LongPoint("publication_date", _rssfeeddoc.getPubDate().getTime()));
+				writer.addDocument(doc);
+			}
 		}
 		writer.close();
 		
@@ -187,7 +214,7 @@ public class LuceneSearchApp {
 			IndexReader reader = DirectoryReader.open(FSDirectory.open(Paths.get("index/")));
 			IndexSearcher searcher = new IndexSearcher(reader);
 			searcher.setSimilarity(iwc.getSimilarity());
-			Analyzer analyzer = new StandardAnalyzer();
+			//Analyzer analyzer = standardAnalyzer;
 			String title_query_exp = "";
 			Builder builder = new BooleanQuery.Builder();
 			if(inTitle!=null)
@@ -218,18 +245,13 @@ public class LuceneSearchApp {
 					builder.add(query, BooleanClause.Occur.MUST_NOT);
 				}
 			}
-			/*if(inSearchTaskNumber!=null)
-			{
-				for(String eachWord : inSearchTaskNumber){
-					Query query = new TermQuery(new Term("search_task_number", eachWord));
-					builder.add(query, BooleanClause.Occur.MUST);
-				}
-			}*/
-			if(inQuery!=null)
-			{
-				for(String eachWord : inQuery){
-					Query query = new TermQuery(new Term("query", eachWord));
-					builder.add(query, BooleanClause.Occur.MUST);
+			
+			/// get the amount of Relevant Documents in the Task Number (relevant == 1)
+			int _amountRelevantDocInTaskNumber = 0;
+			for(int doc_index = 0; doc_index<reader.maxDoc(); doc_index++){
+				Document d = reader.document(doc_index);
+				if (d.get("relevant").equals("1")&&d.get("search_task_number").equals(TaskNumber.toString())){
+					_amountRelevantDocInTaskNumber++;
 				}
 			}
 			
@@ -237,20 +259,21 @@ public class LuceneSearchApp {
 			int hitsPerPage = 100000000;
 			TopDocs docs = searcher.search(booleanQuery, hitsPerPage);
 			ScoreDoc[] hits = docs.scoreDocs;
-			for(int precisionAt = 10; precisionAt<hits.length&&precisionAt<=40; precisionAt+=10){
+			// Loop through result list at Precision K 
+			for(int precisionAt = 1; precisionAt<hits.length ; precisionAt+=1){
 				int countRelevantDoc = 0;
-				for(int i=0;i<hits.length && i<precisionAt;++i) {
-				//for(int i=0;i<hits.length;++i) {
+				for(int i=0;i<hits.length && i< precisionAt;++i) {
 				    Document d = searcher.doc(hits[i].doc);
+				    /// Remove comment for assigment submission ??
 				    /*results.add(d.get("title")+"\n Score: "+hits[i].score
 				    		+"\n Query: "+d.get("query")
 				    		+"\n Relevant: "+d.get("relevant"));*/
-				    if(d.get("relevant").equals("1")&&d.get("search_task_number").equals(inSearchTaskNumber.get(0))){
+				    // Count Relevant Document retrieved for Precision at K
+				    if(d.get("relevant").equals("1")&&d.get("search_task_number").equals(TaskNumber.toString())){
 				    	countRelevantDoc++;
 				    }
 				}
-				results.add("Precision at "+precisionAt+" : "+((double)countRelevantDoc/(double)precisionAt));
-				//results.add("Precision"+" : "+((double)countRelevantDoc/(double)hits.length));
+				results.add("Recall: "+(double)countRelevantDoc/(double)_amountRelevantDocInTaskNumber+", Precision: "+((double)countRelevantDoc/(double)precisionAt));
 			}
 			
 		} catch (Exception e1) {
@@ -305,38 +328,39 @@ public class LuceneSearchApp {
 	
 	public static void main(String[] args) throws IOException {
 		if (args.length > 0) {
-			for (int method = 1; method<=6; method++){
+			///  LOOP THROUGH 6 Pre-defined Methods
+			for (Integer method = 1; method<=6; method++){
 				LuceneSearchApp engine = new LuceneSearchApp();
 				
 				DocumentCollectionParser parser = new DocumentCollectionParser();
 				parser.parse(args[0]);
 				List<DocumentInCollection> docs = parser.getDocuments();
-	
-				engine.setRankingMethod(method+"");
+				
+				// SET RANKING METHOD & INDEX
+				Integer taskNumber = 1;
+				String indexingMethod = method.toString();
+				engine.setRankingMethod(indexingMethod,taskNumber);
 				engine.index(docs);
 	
 				List<String> inTitle;
-				List<String> notInTitle;
 				List<String> inAbstract;
-				List<String> notInAbstract;
 				List<String> results;
 				
 				// 1) search documents in the title
 				inTitle = new LinkedList<String>();
-				inTitle.add("human");
-				inTitle.add("interaction");
+				//inTitle.add("intefaces");
+				//inTitle.add("user");
+				inTitle.add("control");
 				inTitle.add("motion");
-				//inTitle.add("detection");
 				
 				// 2) search documents in the abstract
 				inAbstract = new LinkedList<String>();
-				inAbstract.add("human");
-				inAbstract.add("interface");
+				//inAbstract.add("interfaces");
+				//inAbstract.add("user");
+				inAbstract.add("control");
 				inAbstract.add("motion");
-				//inAbstract.add("detection");
 				List<String> inSearchTaskNumber = new LinkedList<String>();
-				inSearchTaskNumber.add("1");
-				results = engine.search(inAbstract, null, inTitle, null, inSearchTaskNumber, null);
+				results = engine.search(inTitle, null, inAbstract, null, inSearchTaskNumber, null);
 				engine.printResults(results);
 			}
 		}
