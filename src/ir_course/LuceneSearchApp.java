@@ -61,35 +61,41 @@ public class LuceneSearchApp {
 	
 	public void setRankingMethod(String type, Integer tasknumber){
 		TaskNumber = tasknumber;
+		// VSM + Porter stemming + stopwords
 		if(type.equals("1")){
 			analyzer = "vsm";
 			stopwords = true;
 			stemmer = true;
 		}
+		// VSM + Porter stemming - stopwords
 		if(type.equals("2")){
 			analyzer = "vsm";
 			stopwords = false;
 			stemmer = true;
 		}
+		// VSM + standard stemming + stopwords
 		if(type.equals("3")){
-			analyzer = "bm25";
+			analyzer = "vsm";
 			stopwords = true;
-			stemmer = true;
+			stemmer = false;
 		}
+		// BM25 + Porter stemming + stopwords
 		if(type.equals("4")){
 			analyzer = "bm25";
-			stopwords = false;
-			stemmer = true;
-		}
-		if(type.equals("5")){
-			analyzer = "LMDirichlet";
 			stopwords = true;
 			stemmer = true;
 		}
-		if(type.equals("6")){
-			analyzer = "LMDirichlet";
+		// BM25 + Porter stemming - stopwords
+		if(type.equals("5")){
+			analyzer = "bm25";
 			stopwords = false;
 			stemmer = true;
+		}
+		// BM25 + standard stemming + stopwords
+		if(type.equals("6")){
+			analyzer = "bm25";
+			stopwords = true;
+			stemmer = false;
 		}
 	}
 	
@@ -214,8 +220,6 @@ public class LuceneSearchApp {
 			IndexReader reader = DirectoryReader.open(FSDirectory.open(Paths.get("index/")));
 			IndexSearcher searcher = new IndexSearcher(reader);
 			searcher.setSimilarity(iwc.getSimilarity());
-			//Analyzer analyzer = standardAnalyzer;
-			String title_query_exp = "";
 			Builder builder = new BooleanQuery.Builder();
 			if(inTitle!=null)
 			{
@@ -260,7 +264,7 @@ public class LuceneSearchApp {
 			TopDocs docs = searcher.search(booleanQuery, hitsPerPage);
 			ScoreDoc[] hits = docs.scoreDocs;
 			// Loop through result list at Precision K 
-			for(int precisionAt = 1; precisionAt<hits.length ; precisionAt+=1){
+			for(int precisionAt = 1; precisionAt<=hits.length ; precisionAt+=1){
 				int countRelevantDoc = 0;
 				for(int i=0;i<hits.length && i< precisionAt;++i) {
 				    Document d = searcher.doc(hits[i].doc);
@@ -273,7 +277,8 @@ public class LuceneSearchApp {
 				    	countRelevantDoc++;
 				    }
 				}
-				results.add("Recall: "+(double)countRelevantDoc/(double)_amountRelevantDocInTaskNumber+", Precision: "+((double)countRelevantDoc/(double)precisionAt));
+				//results.add("Recall: "+(double)countRelevantDoc/(double)_amountRelevantDocInTaskNumber+", Precision: "+((double)countRelevantDoc/(double)precisionAt));
+				results.add(","+(double)countRelevantDoc/(double)_amountRelevantDocInTaskNumber+","+((double)countRelevantDoc/(double)precisionAt));
 			}
 			
 		} catch (Exception e1) {
@@ -337,7 +342,9 @@ public class LuceneSearchApp {
 				List<DocumentInCollection> docs = parser.getDocuments();
 				
 				// SET RANKING METHOD & INDEX
-				Integer taskNumber = 1;
+				//Integer taskNumber = 1;
+				//Integer taskNumber = 18;
+				Integer taskNumber = 11;
 				String indexingMethod = method.toString();
 				engine.setRankingMethod(indexingMethod,taskNumber);
 				engine.index(docs);
@@ -346,21 +353,65 @@ public class LuceneSearchApp {
 				List<String> inAbstract;
 				List<String> results;
 				
-				// 1) search documents in the title
 				inTitle = new LinkedList<String>();
-				//inTitle.add("intefaces");
-				//inTitle.add("user");
+				inAbstract = new LinkedList<String>();
+				
+				// QUERY 1 - Task 1
+				// 1) search documents in the title
+				/*inTitle.add("motion");
 				inTitle.add("control");
-				inTitle.add("motion");
+				inTitle.add("and");
+				inTitle.add("social");
+				inTitle.add("interaction");
 				
 				// 2) search documents in the abstract
-				inAbstract = new LinkedList<String>();
-				//inAbstract.add("interfaces");
-				//inAbstract.add("user");
-				inAbstract.add("control");
 				inAbstract.add("motion");
-				List<String> inSearchTaskNumber = new LinkedList<String>();
-				results = engine.search(inTitle, null, inAbstract, null, inSearchTaskNumber, null);
+				inAbstract.add("control");
+				inAbstract.add("and");
+				inAbstract.add("social");
+				inAbstract.add("interaction");*/
+				
+				
+				// QUERY 2 - Task 1
+				// 1) search documents in the title
+				/*inTitle.add("gesture");
+				inTitle.add("recognition");
+				inTitle.add("user");
+				inTitle.add("interface");
+				
+				// 2) search documents in the abstract
+				inAbstract.add("gesture");
+				inAbstract.add("recognition");
+				inAbstract.add("user");
+				inAbstract.add("interface");*/
+				
+				// QUERY 3 task 18 - online game
+				// 1) search documents in the title
+				/*inTitle.add("multiplayer");
+				inTitle.add("online");
+				inTitle.add("game");
+				inTitle.add("behavior");
+				
+				// 2) search documents in the abstract
+				inAbstract.add("multiplayer");
+				inAbstract.add("online");
+				inAbstract.add("game");
+				inAbstract.add("behavior");*/
+				
+				// QUERY 4 - Task 11 smart homes
+				// 1) search documents in the title
+				inTitle.add("smart");
+				inTitle.add("home");
+				inTitle.add("ubiquitous");
+				inTitle.add("computing");
+				
+				// 2) search documents in the abstract
+				inAbstract.add("smart");
+				inAbstract.add("home");
+				inAbstract.add("ubiquitous");
+				inAbstract.add("computing");
+				
+				results = engine.search(inTitle, null, inAbstract, null, null, null);
 				engine.printResults(results);
 			}
 		}
