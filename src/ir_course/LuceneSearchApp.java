@@ -264,9 +264,9 @@ public class LuceneSearchApp {
 			TopDocs docs = searcher.search(booleanQuery, hitsPerPage);
 			ScoreDoc[] hits = docs.scoreDocs;
 			// Loop through result list at Precision K 
-			for(int precisionAt = 1; precisionAt<=hits.length ; precisionAt+=1){
+			for(int nTopDocs = 1; nTopDocs<=hits.length ; nTopDocs+=1){
 				int countRelevantDoc = 0;
-				for(int i=0;i<hits.length && i< precisionAt;++i) {
+				for(int i=0;i<hits.length && i< nTopDocs;++i) {
 				    Document d = searcher.doc(hits[i].doc);
 				    /// Remove comment for assigment submission ??
 				    /*results.add(d.get("title")+"\n Score: "+hits[i].score
@@ -278,7 +278,7 @@ public class LuceneSearchApp {
 				    }
 				}
 				//results.add("Recall: "+(double)countRelevantDoc/(double)_amountRelevantDocInTaskNumber+", Precision: "+((double)countRelevantDoc/(double)precisionAt));
-				results.add(","+(double)countRelevantDoc/(double)_amountRelevantDocInTaskNumber+","+((double)countRelevantDoc/(double)precisionAt));
+				results.add(","+(double)countRelevantDoc/(double)_amountRelevantDocInTaskNumber+","+((double)countRelevantDoc/(double)nTopDocs));
 			}
 			
 		} catch (Exception e1) {
@@ -332,87 +332,46 @@ public class LuceneSearchApp {
 	}
 	
 	public static void main(String[] args) throws IOException {
+		String[] queries = {
+			"social recommender system",
+			"a recommender system with explanations",
+			"novelty and diversity in recommender systems",
+		};
+		int taskNumber = 2;
 		if (args.length > 0) {
-			///  LOOP THROUGH 6 Pre-defined Methods
-			for (Integer method = 1; method<=6; method++){
-				LuceneSearchApp engine = new LuceneSearchApp();
-				
-				DocumentCollectionParser parser = new DocumentCollectionParser();
-				parser.parse(args[0]);
-				List<DocumentInCollection> docs = parser.getDocuments();
-				
-				// SET RANKING METHOD & INDEX
-				//Integer taskNumber = 1;
-				//Integer taskNumber = 18;
-				Integer taskNumber = 11;
-				String indexingMethod = method.toString();
-				engine.setRankingMethod(indexingMethod,taskNumber);
-				engine.index(docs);
-	
-				List<String> inTitle;
-				List<String> inAbstract;
-				List<String> results;
-				
-				inTitle = new LinkedList<String>();
-				inAbstract = new LinkedList<String>();
-				
-				// QUERY 1 - Task 1
-				// 1) search documents in the title
-				/*inTitle.add("motion");
-				inTitle.add("control");
-				inTitle.add("and");
-				inTitle.add("social");
-				inTitle.add("interaction");
-				
-				// 2) search documents in the abstract
-				inAbstract.add("motion");
-				inAbstract.add("control");
-				inAbstract.add("and");
-				inAbstract.add("social");
-				inAbstract.add("interaction");*/
-				
-				
-				// QUERY 2 - Task 1
-				// 1) search documents in the title
-				/*inTitle.add("gesture");
-				inTitle.add("recognition");
-				inTitle.add("user");
-				inTitle.add("interface");
-				
-				// 2) search documents in the abstract
-				inAbstract.add("gesture");
-				inAbstract.add("recognition");
-				inAbstract.add("user");
-				inAbstract.add("interface");*/
-				
-				// QUERY 3 task 18 - online game
-				// 1) search documents in the title
-				/*inTitle.add("multiplayer");
-				inTitle.add("online");
-				inTitle.add("game");
-				inTitle.add("behavior");
-				
-				// 2) search documents in the abstract
-				inAbstract.add("multiplayer");
-				inAbstract.add("online");
-				inAbstract.add("game");
-				inAbstract.add("behavior");*/
-				
-				// QUERY 4 - Task 11 smart homes
-				// 1) search documents in the title
-				inTitle.add("smart");
-				inTitle.add("home");
-				inTitle.add("ubiquitous");
-				inTitle.add("computing");
-				
-				// 2) search documents in the abstract
-				inAbstract.add("smart");
-				inAbstract.add("home");
-				inAbstract.add("ubiquitous");
-				inAbstract.add("computing");
-				
-				results = engine.search(inTitle, null, inAbstract, null, null, null);
-				engine.printResults(results);
+			// Loop through queries
+			for(int i = 0; i < queries.length; i++) {
+				///  LOOP THROUGH 6 Pre-defined Methods
+				for (Integer method = 1; method<=6; method++){
+					LuceneSearchApp engine = new LuceneSearchApp();
+					
+					DocumentCollectionParser parser = new DocumentCollectionParser();
+					parser.parse(args[0]);
+					List<DocumentInCollection> docs = parser.getDocuments();
+					
+					// SET RANKING METHOD & INDEX
+					String indexingMethod = method.toString();
+					engine.setRankingMethod(indexingMethod, taskNumber);
+					engine.index(docs);
+		
+					List<String> inTitle;
+					List<String> inAbstract;
+					List<String> results;
+					
+					inTitle = new LinkedList<String>();
+					inAbstract = new LinkedList<String>();
+					
+					// Build query
+					
+					String[] splitQuery = queries[i].split(" ");
+					for(int j = 0; j < splitQuery.length; j++) {
+						inTitle.add(splitQuery[j]);
+						inAbstract.add(splitQuery[j]);
+					}
+					
+					results = engine.search(inTitle, null, inAbstract, null, null, null);
+					engine.printResults(results);
+				}
 			}
 		}
 		else
