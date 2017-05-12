@@ -390,11 +390,10 @@ public class LuceneSearchApp {
 						baseCurve[i] += precRecCurve[i] / queries.length;
 					}
 					
-					printSingleCurve(precRecCurve, method);
+					System.out.println("\n--- Method " + method + " ---");
+					printSingleCurve(precRecCurve);
 					
-					if(precRecCurve[1] < 0.3) {
-						engine.printResults(results);
-					}
+					//engine.printResults(results);
 				}
 			}
 			
@@ -430,8 +429,7 @@ public class LuceneSearchApp {
 		return curve;
 	}
 	
-	public static void printSingleCurve(double[] curve, int method) {
-		System.out.println("\n --- Method " + method + " ---");
+	public static void printSingleCurve(double[] curve) {
 		for(int i = 0; i < 11; i++) {
 			String threshold = i < 10 ? "0." + i : "1.0";
 			System.out.println(threshold + ", " + curve[i]);
@@ -439,9 +437,11 @@ public class LuceneSearchApp {
 	}
 	
 	public static void printCurves(List<double[]> curves) {
+		System.out.println("\n=== Average ===");
 		for(int i = 0; i < curves.size(); i++) {
 			double[] curve = curves.get(i);
-			printSingleCurve(curve, i + 1);
+			System.out.println("\n--- Method " + (i + 1) + " ---");
+			printSingleCurve(curve);
 		}
 	}
 }
