@@ -21,6 +21,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
+import java.util.ArrayList;
 
 import org.apache.lucene.analysis.*;
 import org.apache.lucene.analysis.en.*;
@@ -209,11 +210,11 @@ public class LuceneSearchApp {
 		
 	}
 	
-	public List<String> search(List<String> inTitle, List<String> notInTitle, List<String> inAbstract, List<String> notInAbstract, List<String> inSearchTaskNumber, List<String> inQuery) throws IOException {
+	public List<double[]> search(List<String> inTitle, List<String> notInTitle, List<String> inAbstract, List<String> notInAbstract, List<String> inSearchTaskNumber, List<String> inQuery) throws IOException {
 		
 		printQuery(inTitle, notInTitle, inAbstract, notInAbstract, inSearchTaskNumber, inQuery);
 
-		List<String> results = new LinkedList<String>();
+		List<double[]> precisionRecall = new LinkedList<double[]>();
 		
 		// implement the Lucene search here
 		try {
@@ -268,25 +269,24 @@ public class LuceneSearchApp {
 				int countRelevantDoc = 0;
 				for(int i=0;i<hits.length && i< nTopDocs;++i) {
 				    Document d = searcher.doc(hits[i].doc);
-				    /// Remove comment for assigment submission ??
-				    /*results.add(d.get("title")+"\n Score: "+hits[i].score
-				    		+"\n Query: "+d.get("query")
-				    		+"\n Relevant: "+d.get("relevant"));*/
 				    // Count Relevant Document retrieved for Precision at K
 				    if(d.get("relevant").equals("1")&&d.get("search_task_number").equals(TaskNumber.toString())){
 				    	countRelevantDoc++;
 				    }
 				}
-				//results.add("Recall: "+(double)countRelevantDoc/(double)_amountRelevantDocInTaskNumber+", Precision: "+((double)countRelevantDoc/(double)precisionAt));
-				results.add(","+(double)countRelevantDoc/(double)_amountRelevantDocInTaskNumber+","+((double)countRelevantDoc/(double)nTopDocs));
+				// Add recall, precision
+				double recall = (double)countRelevantDoc/(double)_amountRelevantDocInTaskNumber;
+				double precision = (double)countRelevantDoc/(double)nTopDocs;
+				
+				double[] precRec = {recall, precision};
+				precisionRecall.add(precRec);
 			}
 			
 		} catch (Exception e1) {
-			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
 		
-		return results;
+		return precisionRecall;
 	}
 	
 	public void printQuery(List<String> inTitle, List<String> notInTitle, List<String> inAbstract, List<String> notInAbstract, List<String> inSearchTaskNumber, List<String> inQuery) {
@@ -321,11 +321,13 @@ public class LuceneSearchApp {
 		System.out.println("):");
 	}
 	
-	public void printResults(List<String> results) {
+	public void printResults(List<double[]> results) {
 		if (results.size() > 0) {
 			//Collections.sort(results);
-			for (int i=0; i<results.size(); i++)
-				System.out.println(" " + (i+1) + ". " + results.get(i));
+			for (int i=0; i<results.size(); i++) {
+				double[] result = results.get(i);
+				System.out.println(" " + (i+1) + ". " + result[0] + ", " + result[1] );
+			}
 		}
 		else
 			System.out.println(" no results");
@@ -340,7 +342,9 @@ public class LuceneSearchApp {
 		int taskNumber = 2;
 		if (args.length > 0) {
 			// Loop through queries
-			for(int i = 0; i < queries.length; i++) {
+			List<double[]> averageCurves = new ArrayList<double[]>();
+			for(int query = 0; query < queries.length; query++) {
+				
 				///  LOOP THROUGH 6 Pre-defined Methods
 				for (Integer method = 1; method<=6; method++){
 					LuceneSearchApp engine = new LuceneSearchApp();
@@ -356,25 +360,88 @@ public class LuceneSearchApp {
 		
 					List<String> inTitle;
 					List<String> inAbstract;
-					List<String> results;
+					List<double[]> results;
 					
 					inTitle = new LinkedList<String>();
 					inAbstract = new LinkedList<String>();
 					
 					// Build query
 					
-					String[] splitQuery = queries[i].split(" ");
+					String[] splitQuery = queries[query].split(" ");
 					for(int j = 0; j < splitQuery.length; j++) {
 						inTitle.add(splitQuery[j]);
 						inAbstract.add(splitQuery[j]);
 					}
 					
 					results = engine.search(inTitle, null, inAbstract, null, null, null);
-					engine.printResults(results);
+					
+					// Calculate average
+					
+					double[] precRecCurve = getInterpolated11stepPrecisionRecallCurve(results);
+					// Create base curve if it doesn't exist
+					if(averageCurves.size() < method) {
+						double[] baseCurve = new double[11];
+						baseCurve[0] = 1.;
+						averageCurves.add(baseCurve);
+					}
+					// Online average calculation
+					double[] baseCurve = averageCurves.get(method - 1);
+					for(int i = 1; i < 11; i++) {
+						baseCurve[i] += precRecCurve[i] / queries.length;
+					}
+					
+					printSingleCurve(precRecCurve, method);
+					
+					if(precRecCurve[1] < 0.3) {
+						engine.printResults(results);
+					}
 				}
 			}
+			
+			printCurves(averageCurves);
 		}
 		else
 			System.out.println("ERROR: the path of a RSS Feed file has to be passed as a command line argument.");
+	}
+	
+	public static double[] getInterpolated11stepPrecisionRecallCurve(
+			List<double[]> recPrec) {
+		// Calculate max precision of list in reverse. When a list element with
+		// a recall smaller than current threshold is encountered, the current
+		// max value is added to the curve array and the threshold is
+		// decremented
+		double max = 0;
+		double[] curve = new double[11];
+		curve[0] = 1.;
+		int threshold = 10;
+		for(int i = recPrec.size() - 1; i >= 0; i--) {
+			double[] pair = recPrec.get(i);
+			double recall = pair[0];
+			double precision = pair[1];
+			max = precision > max ? precision : max;
+			if(recall <= (double)threshold / 10.) {
+				curve[threshold] = max;
+				threshold--;
+				if(threshold <= 0) {
+					break;
+				}
+			}
+		}
+		return curve;
+	}
+	
+	public static void printSingleCurve(double[] curve, int method) {
+		System.out.println("\n --- Method " + method + " ---");
+		for(int i = 0; i < 11; i++) {
+			String threshold = i < 10 ? "0." + i : "1.0";
+			System.out.println(threshold + ", " + curve[i]);
+		}
+	}
+	
+	public static void printCurves(List<double[]> curves) {
+		for(int i = 0; i < curves.size(); i++) {
+			double[] curve = curves.get(i);
+			printSingleCurve(curve, i + 1);
+		}
 	}
 }
