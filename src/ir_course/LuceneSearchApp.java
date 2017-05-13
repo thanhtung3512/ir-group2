@@ -381,12 +381,11 @@ public class LuceneSearchApp {
 					// Create base curve if it doesn't exist
 					if(averageCurves.size() < method) {
 						double[] baseCurve = new double[11];
-						baseCurve[0] = 1.;
 						averageCurves.add(baseCurve);
 					}
 					// Online average calculation
 					double[] baseCurve = averageCurves.get(method - 1);
-					for(int i = 1; i < 11; i++) {
+					for(int i = 0; i < 11; i++) {
 						baseCurve[i] += precRecCurve[i] / queries.length;
 					}
 					
@@ -403,6 +402,10 @@ public class LuceneSearchApp {
 			System.out.println("ERROR: the path of a RSS Feed file has to be passed as a command line argument.");
 	}
 	
+	public static double FMeasure(double precision, double recall) {
+		return 2. / (1. / precision + 1. / recall);
+	}
+	
 	public static double[] getInterpolated11stepPrecisionRecallCurve(
 			List<double[]> recPrec) {
 		// Calculate max precision of list in reverse. When a list element with
@@ -411,7 +414,6 @@ public class LuceneSearchApp {
 		// decremented
 		double max = 0;
 		double[] curve = new double[11];
-		curve[0] = 1.;
 		int threshold = 10;
 		for(int i = recPrec.size() - 1; i >= 0; i--) {
 			double[] pair = recPrec.get(i);
@@ -421,11 +423,12 @@ public class LuceneSearchApp {
 			if(recall <= (double)threshold / 10.) {
 				curve[threshold] = max;
 				threshold--;
-				if(threshold <= 0) {
+				if(threshold < 0) {
 					break;
 				}
 			}
 		}
+		curve[0] = max;
 		return curve;
 	}
 	
