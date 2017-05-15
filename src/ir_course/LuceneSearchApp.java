@@ -432,14 +432,14 @@ public class LuceneSearchApp {
 			double[] pair = recPrec.get(i);
 			double recall = pair[0];
 			double precision = pair[1];
-			max = precision > max ? precision : max;
-			if(recall <= (double)threshold / 10.) {
+			while(recall <= (double)threshold / 10.) {
 				curve[threshold] = max;
 				threshold--;
 				if(threshold < 0) {
 					break;
 				}
 			}
+			max = precision > max ? precision : max;
 		}
 		curve[0] = max;
 		return curve;
