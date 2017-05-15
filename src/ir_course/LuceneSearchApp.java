@@ -11,6 +11,10 @@
 package ir_course;
 
 import java.io.IOException;
+import java.util.logging.FileHandler;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.logging.SimpleFormatter;
 import java.nio.file.Paths;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -56,6 +60,7 @@ public class LuceneSearchApp {
 	Integer TaskNumber = null;
 	IndexWriterConfig iwc = null;
 	Analyzer standardAnalyzer = new StandardAnalyzer();
+	private final static Logger LOGGER = Logger.getLogger(LuceneSearchApp.class.getName());
 	
 	public LuceneSearchApp() {
 	}
@@ -227,6 +232,8 @@ public class LuceneSearchApp {
 			e.printStackTrace();
 		}
 		
+		List<String> relevantDocs = new LinkedList<String>();
+		
 		// implement the Lucene search here
 		try {
 			IndexReader reader = DirectoryReader.open(FSDirectory.open(Paths.get("index/")));
@@ -288,6 +295,10 @@ public class LuceneSearchApp {
 				    // Count Relevant Document retrieved for Precision at K
 				    if(d.get("relevant").equals("1")&&d.get("search_task_number").equals(TaskNumber.toString())){
 				    	countRelevantDoc++;
+				    	String title = d.get("title");
+				    	if (!relevantDocs.contains(title)){
+				    		relevantDocs.add(title);
+				    	}
 				    }
 				}
 				// Add recall, precision
@@ -302,7 +313,14 @@ public class LuceneSearchApp {
 			e1.printStackTrace();
 		}
 		
+		this.logResults(relevantDocs);
 		return precisionRecall;
+	}
+	
+	public void logResults(List<String> results){
+		for(int i = 0; i < results.size(); i++){
+			this.LOGGER.log(Level.INFO,results.get(i));
+		}
 	}
 	
 	public void printQuery(List<String> inTitle, List<String> notInTitle, List<String> inAbstract, List<String> notInAbstract, List<String> inSearchTaskNumber, List<String> inQuery) {
