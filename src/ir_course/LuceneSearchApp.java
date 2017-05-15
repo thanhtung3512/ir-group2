@@ -341,8 +341,10 @@ public class LuceneSearchApp {
 	public void printResults(List<String> results) {
 		if (results.size() > 0) {
 			//Collections.sort(results);
-			for (int i=0; i<results.size(); i++)
-				System.out.println(" " + (i+1) + ". " + results.get(i));
+			for (int i=0; i<results.size(); i++){
+				//System.out.println(" " + (i+1) + ". " + results.get(i));
+				LOGGER.info(" " + (i+1) + ". " + results.get(i));
+			}
 		}
 		else
 			System.out.println(" no results");
