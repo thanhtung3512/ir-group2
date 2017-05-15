@@ -418,6 +418,16 @@ public class LuceneSearchApp {
 		double max = 0;
 		double[] curve = new double[11];
 		int threshold = 10;
+		
+		// Zero values if result does not reach a threshold
+		double lastRecall = recPrec.get(recPrec.size() - 1)[0];
+		for(int i = threshold; i >= 0; i--) {
+			if(lastRecall < (double)threshold / 10.) {
+				curve[i] = 0.;
+				threshold--;
+			}
+		}
+		
 		for(int i = recPrec.size() - 1; i >= 0; i--) {
 			double[] pair = recPrec.get(i);
 			double recall = pair[0];
