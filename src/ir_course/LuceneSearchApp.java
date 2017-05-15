@@ -210,11 +210,22 @@ public class LuceneSearchApp {
 		
 	}
 	
-	public List<double[]> search(List<String> inTitle, List<String> notInTitle, List<String> inAbstract, List<String> notInAbstract, List<String> inSearchTaskNumber, List<String> inQuery) throws IOException {
+	public List<double[]> search(String inTitle, List<String> notInTitle, String inAbstract, List<String> notInAbstract, List<String> inSearchTaskNumber, List<String> inQuery) throws IOException {
 		
-		printQuery(inTitle, notInTitle, inAbstract, notInAbstract, inSearchTaskNumber, inQuery);
+		//printQuery(inTitle, notInTitle, inAbstract, notInAbstract, inSearchTaskNumber, inQuery);
 
 		List<double[]> precisionRecall = new LinkedList<double[]>();
+		
+
+		QueryParser qp = new QueryParser("", iwc.getAnalyzer());
+		String[] inTitleSplit = null;
+		String[] inAbstractSplit = null;
+		try {
+			inTitleSplit = qp.parse(inTitle).toString().split(" ");
+			inAbstractSplit = qp.parse(inAbstract).toString().split(" ");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		
 		// implement the Lucene search here
 		try {
@@ -224,8 +235,10 @@ public class LuceneSearchApp {
 			Builder builder = new BooleanQuery.Builder();
 			if(inTitle!=null)
 			{
-				for(String eachWord : inTitle){
+				System.out.println("In title:");
+				for(String eachWord : inTitleSplit){
 					Query query = new TermQuery(new Term("title", eachWord));
+					System.out.println(eachWord);
 					builder.add(query, BooleanClause.Occur.SHOULD);
 				}
 			}
@@ -238,8 +251,10 @@ public class LuceneSearchApp {
 			}
 			if(inAbstract!=null)
 			{
-				for(String eachWord : inAbstract){
+				System.out.println("In abstract:");
+				for(String eachWord : inAbstractSplit){
 					Query query = new TermQuery(new Term("abstract_text", eachWord));
+					System.out.println(eachWord);
 					builder.add(query, BooleanClause.Occur.SHOULD);
 				}
 			}
@@ -264,6 +279,7 @@ public class LuceneSearchApp {
 			int hitsPerPage = 100000000;
 			TopDocs docs = searcher.search(booleanQuery, hitsPerPage);
 			ScoreDoc[] hits = docs.scoreDocs;
+			
 			// Loop through result list at Precision K 
 			for(int nTopDocs = 1; nTopDocs<=hits.length ; nTopDocs+=1){
 				int countRelevantDoc = 0;
@@ -358,22 +374,9 @@ public class LuceneSearchApp {
 					engine.setRankingMethod(indexingMethod, taskNumber);
 					engine.index(docs);
 		
-					List<String> inTitle;
-					List<String> inAbstract;
 					List<double[]> results;
 					
-					inTitle = new LinkedList<String>();
-					inAbstract = new LinkedList<String>();
-					
-					// Build query
-					
-					String[] splitQuery = queries[query].split(" ");
-					for(int j = 0; j < splitQuery.length; j++) {
-						inTitle.add(splitQuery[j]);
-						inAbstract.add(splitQuery[j]);
-					}
-					
-					results = engine.search(inTitle, null, inAbstract, null, null, null);
+					results = engine.search(queries[query], null, queries[query], null, null, null);
 					
 					// Calculate average
 					
