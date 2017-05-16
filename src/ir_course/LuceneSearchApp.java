@@ -65,6 +65,7 @@ public class LuceneSearchApp {
 	private final static Logger LOGGER = Logger.getLogger(LuceneSearchApp.class.getName());
 	
 	public LuceneSearchApp() {
+		LOGGER.setUseParentHandlers(false);
 		 try {
 			handler = new FileHandler("default.log",true);
 			Formatter formatterTxt = new SimpleFormatter();
@@ -371,7 +372,7 @@ public class LuceneSearchApp {
 			//Collections.sort(results);
 			for (int i=0; i<results.size(); i++){
 				//System.out.println(" " + (i+1) + ". " + results.get(i));
-				LOGGER.info(" " + (i+1) + ". " + results.get(i));
+				LOGGER.info(" " + (i+1) + ". " + results.get(i)[0] + ", " + results.get(i)[1]);
 			}
 		}
 		else
