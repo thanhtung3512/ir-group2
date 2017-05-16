@@ -54,6 +54,7 @@ import org.apache.lucene.search.similarities.TFIDFSimilarity;
 
 
 public class LuceneSearchApp {
+	FileHandler handler;
 	String analyzer = "bm25";
 	boolean stopwords = true;
 	boolean stemmer = true;
@@ -63,6 +64,13 @@ public class LuceneSearchApp {
 	private final static Logger LOGGER = Logger.getLogger(LuceneSearchApp.class.getName());
 	
 	public LuceneSearchApp() {
+		 try {
+			handler = new FileHandler("default.log",true);
+		} catch (SecurityException | IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		LOGGER.addHandler(handler);
 	}
 	
 	public void setRankingMethod(String type, Integer tasknumber){
@@ -358,9 +366,9 @@ public class LuceneSearchApp {
 	public void printResults(List<double[]> results) {
 		if (results.size() > 0) {
 			//Collections.sort(results);
-			for (int i=0; i<results.size(); i++) {
-				double[] result = results.get(i);
-				System.out.println(" " + (i+1) + ". " + result[0] + ", " + result[1] );
+			for (int i=0; i<results.size(); i++){
+				//System.out.println(" " + (i+1) + ". " + results.get(i));
+				LOGGER.info(" " + (i+1) + ". " + results.get(i));
 			}
 		}
 		else
