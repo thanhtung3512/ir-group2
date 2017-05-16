@@ -12,6 +12,7 @@ package ir_course;
 
 import java.io.IOException;
 import java.util.logging.FileHandler;
+import java.util.logging.Formatter;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
@@ -66,6 +67,8 @@ public class LuceneSearchApp {
 	public LuceneSearchApp() {
 		 try {
 			handler = new FileHandler("default.log",true);
+			Formatter formatterTxt = new SimpleFormatter();
+	        handler.setFormatter(formatterTxt);
 		} catch (SecurityException | IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
