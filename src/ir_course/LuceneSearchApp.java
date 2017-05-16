@@ -421,7 +421,7 @@ public class LuceneSearchApp {
 					System.out.println("\n--- Method " + method + " ---");
 					printSingleCurve(precRecCurve);
 					
-					//engine.printResults(results);
+					engine.printResults(results);
 				}
 			}
 			
